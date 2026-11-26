@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <actions/>
+  <description>Demo: test, build and simulate a deployment. Requires Python 3, Git and Credentials Binding plugins, plus a demo-token Secret text credential.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition><name>MESSAGE</name><defaultValue>Hello demo audience</defaultValue></hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition><name>RELEASE</name><defaultValue>1.0.0</defaultValue></hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition><name>TARGET_ENV</name><defaultValue>dev</defaultValue></hudson.model.StringParameterDefinition>
+        <hudson.model.BooleanParameterDefinition><name>REQUIRE_SECRET</name><defaultValue>false</defaultValue></hudson.model.BooleanParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs><hudson.plugins.git.UserRemoteConfig><url>https://github.com/alex-harvey-z3q/github-actions-example.git</url></hudson.plugins.git.UserRemoteConfig></userRemoteConfigs>
+    <branches><hudson.plugins.git.BranchSpec><name>*/main</name></hudson.plugins.git.BranchSpec></branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="empty-list"/>
+    <extensions/>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell><command>set -eu
+python3 -m unittest discover -s tests -v
+python3 app.py build --message "$MESSAGE" --release "$RELEASE"
+python3 dist/app.py deploy --target "$TARGET_ENV" --require-secret "$REQUIRE_SECRET"
+</command></hudson.tasks.Shell>
+  </builders>
+  <publishers><hudson.tasks.ArtifactArchiver><artifacts>dist/**,deployment/receipt.json</artifacts><allowEmptyArchive>false</allowEmptyArchive><onlyIfSuccessful>true</onlyIfSuccessful><fingerprint>false</fingerprint><defaultExcludes>true</defaultExcludes></hudson.tasks.ArtifactArchiver></publishers>
+  <buildWrappers>
+    <org.jenkinsci.plugins.credentialsbinding.impl.SecretBuildWrapper>
+      <bindings><org.jenkinsci.plugins.credentialsbinding.impl.StringBinding><credentialsId>demo-token</credentialsId><variable>DEMO_TOKEN</variable></org.jenkinsci.plugins.credentialsbinding.impl.StringBinding></bindings>
+    </org.jenkinsci.plugins.credentialsbinding.impl.SecretBuildWrapper>
+  </buildWrappers>
+</project>

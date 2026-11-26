@@ -1,0 +1,44 @@
+name: 01 Migrated Jenkins pipeline
+run-name: "Single release by ${{ github.actor }} (${{ github.event_name }})"
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Creates the Run workflow button and input form.
+    inputs:
+      message:
+        description: Greeting to package
+        type: string
+        default: Hello demo audience
+        required: true
+      release:
+        description: Release version, for example 1.0.0
+        type: string
+        default: '1.0.0'
+        required: true
+      target_environment:
+        description: Simulated target
+        type: choice
+        options: [dev, test, staging]
+        default: dev
+      require_secret:
+        description: Fail if DEMO_TOKEN is not configured
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  deliver:
+    # Call the template at JOB level. A reusable workflow can contain many jobs.
+    uses: ./.github/workflows/reusable-delivery.yml
+    with:
+      message: ${{ inputs.message || 'Hello from a push to main' }}
+      release: ${{ inputs.release || '1.0.0' }}
+      target_environment: ${{ inputs.target_environment || 'dev' }}
+      python_version: '3.12'
+      artifact_name: single-release
+      require_secret: ${{ inputs.require_secret || false }}
+    secrets:
+      demo_token: ${{ secrets.DEMO_TOKEN }}

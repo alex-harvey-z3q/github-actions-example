@@ -1,0 +1,87 @@
+name: Reusable build and simulated deployment
+
+# A reusable workflow is called by another workflow, not by a push directly.
+on:
+  workflow_call:
+    inputs:
+      message:
+        type: string
+        required: true
+      release:
+        type: string
+        required: true
+      python_version:
+        type: string
+        default: '3.12'
+      target_environment:
+        type: string
+        default: dev
+      artifact_name:
+        type: string
+        default: demo-package
+      require_secret:
+        type: boolean
+        default: false
+    secrets:
+      demo_token:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out this repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ inputs.python_version }}
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Build the application package
+        # Pass user inputs as data through environment variables, not shell code.
+        env:
+          MESSAGE: ${{ inputs.message }}
+          RELEASE: ${{ inputs.release }}
+        run: python app.py build --message "$MESSAGE" --release "$RELEASE"
+      - name: Save the package for the next job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Simulated deployment
+    needs: build # Jobs run in order only when a dependency is declared.
+    runs-on: ubuntu-latest # This is a fresh machine; download the build artifact.
+    steps:
+      - name: Install Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ inputs.python_version }}
+      - name: Download the built package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: dist
+      - name: Deploy locally and demonstrate the secret
+        env:
+          TARGET_ENV: ${{ inputs.target_environment }}
+          REQUIRE_SECRET: ${{ inputs.require_secret }}
+          DEMO_TOKEN: ${{ secrets.demo_token }}
+        run: python dist/app.py deploy --target "$TARGET_ENV" --require-secret "$REQUIRE_SECRET"
+      - name: Save the deployment receipt
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_name }}-receipt
+          path: deployment/receipt.json
+          if-no-files-found: error
+          retention-days: 7

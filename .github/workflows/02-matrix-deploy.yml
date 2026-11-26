@@ -1,0 +1,73 @@
+name: 02 Matrix deployment demo
+run-name: "Matrix demo by ${{ github.actor }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      releases:
+        description: JSON list of 1 to 3 release versions
+        type: string
+        default: '["1.0.0","2.0.0"]'
+        required: true
+      target_environment:
+        description: Simulated target for every combination
+        type: choice
+        options: [dev, test, staging]
+        default: test
+      message:
+        description: Greeting to package in every version
+        type: string
+        default: Hello from the matrix
+        required: true
+      require_secret:
+        description: Fail if DEMO_TOKEN is not configured
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Validate the release list
+    runs-on: ubuntu-latest
+    outputs:
+      releases: ${{ steps.versions.outputs.releases }}
+    steps:
+      - name: Validate and export matrix input
+        id: versions
+        env:
+          RELEASES_JSON: ${{ inputs.releases }}
+        shell: python
+        run: |
+          import json, os, re
+          releases = json.loads(os.environ['RELEASES_JSON'])
+          if not isinstance(releases, list) or not 1 <= len(releases) <= 3:
+              raise SystemExit('Enter a JSON list of 1 to 3 release versions')
+          if any(not isinstance(v, str) or not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', v) for v in releases):
+              raise SystemExit('Use versions such as ["1.0.0","2.0.0"]')
+          if len(set(releases)) != len(releases):
+              raise SystemExit('Release versions must be unique')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('releases=' + json.dumps(releases) + '\n')
+
+  deliver:
+    name: Release ${{ matrix.release }} on Python ${{ matrix.python }}
+    needs: prepare
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        release: ${{ fromJSON(needs.prepare.outputs.releases) }}
+        python: ['3.11', '3.12']
+    # Each combination calls the SAME reusable template as pipeline 01.
+    uses: ./.github/workflows/reusable-delivery.yml
+    with:
+      release: ${{ matrix.release }}
+      python_version: ${{ matrix.python }}
+      message: ${{ inputs.message }}
+      target_environment: ${{ inputs.target_environment }}
+      artifact_name: demo-${{ matrix.release }}-python-${{ matrix.python }}
+      require_secret: ${{ inputs.require_secret }}
+    secrets:
+      demo_token: ${{ secrets.DEMO_TOKEN }}
