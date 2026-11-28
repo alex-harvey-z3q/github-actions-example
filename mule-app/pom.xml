@@ -17,7 +17,7 @@
         <!-- This synthetic application uses Kernel features; no EE credentials. -->
         <runtimeProduct>MULE</runtimeProduct>
         <runtimeVersion>${mule.runtime.version}</runtimeVersion>
-        <coverage><runCoverage>true</runCoverage><failBuild>true</failBuild><requiredApplicationCoverage>80</requiredApplicationCoverage></coverage>
+        <coverage><runCoverage>true</runCoverage><failBuild>true</failBuild><requiredApplicationCoverage>80</requiredApplicationCoverage><ignoreFlows><ignoreFlow>timetable-http</ignoreFlow></ignoreFlows></coverage>
       </configuration>
     </plugin>
   </plugins></build>

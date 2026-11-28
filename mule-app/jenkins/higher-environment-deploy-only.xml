@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project><description>Synthetic demo only: requires Python 3.12 and, for DEV, Java 17/Maven 3.8.7. The repository must be checked out in the workspace. Platform deployment is simulated.</description>
+<properties><hudson.model.ParametersDefinitionProperty><parameterDefinitions>
+<hudson.model.StringParameterDefinition><name>VERSION</name><defaultValue>1.0.0</defaultValue></hudson.model.StringParameterDefinition>
+<hudson.model.StringParameterDefinition><name>TARGET_ENV</name><defaultValue>UAT</defaultValue></hudson.model.StringParameterDefinition>
+</parameterDefinitions></hudson.model.ParametersDefinitionProperty></properties><scm class="hudson.scm.NullSCM"/><canRoam>true</canRoam><disabled>false</disabled><triggers/><builders><hudson.tasks.Shell><command>set -eu
+cd mule-app
+# Supply a previously published demo-exchange snapshot in this workspace.
+# This job deliberately has no Maven build, package or publish command.
+python3 scripts/platform.py deploy --version "$VERSION" --environment "$TARGET_ENV" --require-secret false
+</command></hudson.tasks.Shell></builders><publishers/><buildWrappers/></project>

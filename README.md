@@ -1,5 +1,7 @@
 # Jenkins to GitHub Actions demo
 
+**MuleSoft POC:** See [the synthetic Mule timetable build-and-promotion demo](README-MULE.md) for a real Mule JAR build, reusable workflows and deployment-only promotion. The beginner Python demos below remain available.
+
 A tiny Python application demonstrates the same **test → build → deploy** flow in Jenkins and GitHub Actions. Deployment is simulated: it writes a JSON receipt on the runner and changes no external system. No Python packages or cloud accounts are needed.
 
 ## Start the demo
