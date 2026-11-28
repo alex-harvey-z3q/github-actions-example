@@ -20,6 +20,14 @@ The original beginner examples remain available as workflows **01** and **02**. 
 
 **A green default run proves packaging, publication, selection, byte preservation and the simulated delivery path. It does not prove Mule runtime behaviour, MUnit execution, Exchange publication or CloudHub deployment.**
 
+## Verified runs
+
+- [Default delivery baseline: build, publish and promote](https://github.com/alex-harvey-z3q/github-actions-example/actions/runs/46140474787) — passed with tests explicitly skipped.
+- [Real MUnit-enabled build and promotion](https://github.com/alex-harvey-z3q/github-actions-example/actions/runs/46140801478) — passed; three executed MUnit tests, no failures/errors/skips, followed by all four simulated environment deployments.
+- [Deployment-only from an earlier publication](https://github.com/alex-harvey-z3q/github-actions-example/actions/runs/46140804325) — passed without a build job.
+
+See [the validation record](mule-app/VALIDATION.md) for checksums and scope.
+
 ## Run the main demo
 
 1. Open **Actions → 03 Synthetic Mule build and promote → Run workflow** on `main`.
@@ -76,7 +84,9 @@ The suite in [mule-app/src/test/munit/timetable-test.xml](mule-app/src/test/muni
 
 The optional `execute_munit` input changes Maven's test-skip flag to `false` and enables the declared 80% coverage gate for the application logic. The HTTP adapter flow is explicitly excluded from this MUnit coverage calculation; the synthetic tests call the logic flow directly. The manifest requires evidence of exactly three executed, non-failing tests. It cannot turn a skipped run into an apparent MUnit success.
 
-The POM selects the **Mule Kernel** runtime so the synthetic app does not intentionally require an Enterprise account. Execution still depends on public availability and compatibility of that exact runtime and MUnit combination. Enterprise runtime tests commonly require vendor repository credentials; none are included or taken from another organisation. An unavailable runtime must result in a visible failed test run, not a simulated pass.
+The POM selects the **Mule Kernel** runtime. This combination was verified on GitHub: Mule CE 4.9.0 and MUnit 3.4.0 executed all three tests with zero failures, errors or skipped tests, without vendor or University credentials. The HTTP adapter flow is excluded from the declared coverage calculation. Public runtime availability remains a dependency; a future resolution or test failure stops the build rather than producing a simulated pass. Enterprise runtime tests can require vendor credentials and are outside this credential-free example.
+
+MUnit starts a real Mule Kernel runtime in the **build job** when requested. The receipt field `mule_runtime_executed: false` describes the **deployment job**, which always uses the Python stand-in.
 
 ## Files to present
 

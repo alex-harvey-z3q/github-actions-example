@@ -166,7 +166,7 @@ def deploy(repository, version, environment, expected_run=None, require_secret=F
             summary.write(f"## {environment} — simulated CloudHub deployment\n\n")
             summary.write(f"Selected **{GROUP}:{ARTIFACT}:{version}** from build run {data['source_run_id']}.\n\n")
             summary.write(f"JAR SHA-256: `{data['jar_sha256']}`\n\n")
-            summary.write('No rebuild. Three HTTP checks passed on a Python stand-in. **No Mule runtime or CloudHub deployment was executed.**\n\n')
+            summary.write('No rebuild. Three HTTP checks passed on a Python stand-in. **This deployment job does not start a Mule runtime or deploy to CloudHub.**\n\n')
             summary.write('MUnit: ' + (f"{data['munit']['executed']} executed" if data['munit']['requested'] else 'skipped, preserving the delivery baseline') + '\n')
     return receipt
 
