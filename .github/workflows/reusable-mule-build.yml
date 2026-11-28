@@ -1,0 +1,82 @@
+name: Reusable synthetic Mule build and publication
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      execute_munit:
+        type: boolean
+        default: false
+    outputs:
+      package_version:
+        description: Published application version
+        value: ${{ jobs.publish.outputs.version }}
+      exchange_artifact:
+        description: GitHub artifact containing the file-based Exchange stand-in
+        value: ${{ jobs.publish.outputs.exchange_artifact }}
+permissions:
+  contents: read
+jobs:
+  publish:
+    name: Build and publish the Mule JAR
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      exchange_artifact: mule-exchange-${{ github.run_id }}
+    defaults:
+      run:
+        working-directory: mule-app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Java 17
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Install Maven 3.8.7 with checksum verification
+        run: python3 scripts/install_maven.py
+      - name: Check the simulator and artifact-selection rules
+        run: python3 -m unittest discover -s tests -v
+      - name: Select the synthetic release version
+        id: release
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          python3 scripts/platform.py set-version --version "$VERSION"
+          printf 'version=%s\n' "$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Install the synthetic parent POM
+        run: mvn -B -f demo-parent/pom.xml clean install -DskipTests=true
+      - name: Build and publish to the file-based Exchange stand-in
+        env:
+          EXECUTE_MUNIT: ${{ inputs.execute_munit }}
+        run: |
+          mvn --version
+          if [ "$EXECUTE_MUNIT" = true ]; then SKIP_TESTS=false; else SKIP_TESTS=true; fi
+          mvn -B clean deploy -e -U "-DskipTests=$SKIP_TESTS"
+      - name: Record the published GAV and JAR/POM checksums
+        env:
+          VERSION: ${{ inputs.version }}
+          EXECUTE_MUNIT: ${{ inputs.execute_munit }}
+        run: python3 scripts/platform.py manifest --version "$VERSION" --execute-munit "$EXECUTE_MUNIT"
+      - name: Save the published repository for deployment jobs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mule-exchange-${{ github.run_id }}
+          path: mule-app/demo-exchange/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Save MUnit reports when execution was requested
+        if: ${{ always() && inputs.execute_munit }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mule-munit-${{ github.run_id }}
+          path: |
+            mule-app/target/surefire-reports/
+            mule-app/target/munit-reports/
+          if-no-files-found: warn
+          retention-days: 7

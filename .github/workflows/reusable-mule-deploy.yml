@@ -1,0 +1,60 @@
+name: Reusable deployment-only selector and simulated runtime
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      target_environment:
+        type: string
+        required: true
+      source_run_id:
+        type: string
+        required: true
+      exchange_artifact:
+        type: string
+        required: true
+      require_secret:
+        type: boolean
+        default: true
+    secrets:
+      demo_token:
+        required: false
+permissions:
+  contents: read
+  actions: read
+jobs:
+  deploy:
+    name: Select published JAR and simulate ${{ inputs.target_environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: mule-app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # No Maven, Java setup, packaging or source rebuild in this deployment job.
+      - name: Download the selected publication run's repository snapshot
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.exchange_artifact }}
+          path: mule-app/demo-exchange
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.source_run_id }}
+      - name: Verify GAV and bytes, then perform the simulated deployment
+        env:
+          VERSION: ${{ inputs.version }}
+          TARGET_ENV: ${{ inputs.target_environment }}
+          SOURCE_RUN: ${{ inputs.source_run_id }}
+          REQUIRE_SECRET: ${{ inputs.require_secret }}
+          DEMO_TOKEN: ${{ secrets.demo_token }}
+        run: python3 scripts/platform.py deploy --version "$VERSION" --environment "$TARGET_ENV" --source-run "$SOURCE_RUN" --require-secret "$REQUIRE_SECRET"
+      - name: Retain the deployment and HTTP smoke-check receipt
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mule-receipt-${{ inputs.target_environment }}-${{ github.run_id }}
+          path: mule-app/receipts/
+          if-no-files-found: error
+          retention-days: 7

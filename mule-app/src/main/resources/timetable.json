@@ -1,0 +1,4 @@
+[
+  {"id":"demo-101","day":"monday","time":"10:00","title":"Synthetic workshop","room":"Demo room A"},
+  {"id":"demo-202","day":"tuesday","time":"14:00","title":"Synthetic lab","room":"Demo room B"}
+]

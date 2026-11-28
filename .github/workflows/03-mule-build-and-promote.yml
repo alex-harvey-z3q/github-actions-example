@@ -1,0 +1,81 @@
+name: 03 Synthetic Mule build and promote
+run-name: "Mule POC — ${{ inputs.version || github.run_number }} — ${{ github.actor }}"
+on:
+  push:
+    branches: [main, codex/aplus-shaped-poc]
+    paths:
+      - 'mule-app/**'
+      - '.github/workflows/*mule*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Synthetic release version
+        required: true
+        default: '1.0.0'
+        type: string
+      execute_munit:
+        description: Run real MUnit tests (requires the selected public Mule Kernel runtime)
+        type: boolean
+        default: false
+      require_secret:
+        description: Require the inert DEMO_TOKEN in simulated deployments
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  publish:
+    name: DEV build and publication
+    uses: ./.github/workflows/reusable-mule-build.yml
+    with:
+      version: ${{ inputs.version || format('1.0.{0}', github.run_number) }}
+      execute_munit: ${{ inputs.execute_munit || false }}
+  dev:
+    name: DEV deployment
+    needs: publish
+    uses: ./.github/workflows/reusable-mule-deploy.yml
+    with:
+      version: ${{ needs.publish.outputs.package_version }}
+      target_environment: DEV
+      source_run_id: ${{ format('{0}', github.run_id) }}
+      exchange_artifact: ${{ needs.publish.outputs.exchange_artifact }}
+      require_secret: ${{ github.event_name == 'push' || inputs.require_secret }}
+    secrets:
+      demo_token: ${{ secrets.DEMO_TOKEN }}
+  sit:
+    name: SIT promotion without rebuild
+    needs: [publish, dev]
+    uses: ./.github/workflows/reusable-mule-deploy.yml
+    with:
+      version: ${{ needs.publish.outputs.package_version }}
+      target_environment: SIT
+      source_run_id: ${{ format('{0}', github.run_id) }}
+      exchange_artifact: ${{ needs.publish.outputs.exchange_artifact }}
+      require_secret: ${{ github.event_name == 'push' || inputs.require_secret }}
+    secrets:
+      demo_token: ${{ secrets.DEMO_TOKEN }}
+  uat:
+    name: UAT promotion without rebuild
+    needs: [publish, sit]
+    uses: ./.github/workflows/reusable-mule-deploy.yml
+    with:
+      version: ${{ needs.publish.outputs.package_version }}
+      target_environment: UAT
+      source_run_id: ${{ format('{0}', github.run_id) }}
+      exchange_artifact: ${{ needs.publish.outputs.exchange_artifact }}
+      require_secret: ${{ github.event_name == 'push' || inputs.require_secret }}
+    secrets:
+      demo_token: ${{ secrets.DEMO_TOKEN }}
+  prod:
+    name: PROD simulation without rebuild
+    needs: [publish, uat]
+    uses: ./.github/workflows/reusable-mule-deploy.yml
+    with:
+      version: ${{ needs.publish.outputs.package_version }}
+      target_environment: PROD
+      source_run_id: ${{ format('{0}', github.run_id) }}
+      exchange_artifact: ${{ needs.publish.outputs.exchange_artifact }}
+      require_secret: ${{ github.event_name == 'push' || inputs.require_secret }}
+    secrets:
+      demo_token: ${{ secrets.DEMO_TOKEN }}

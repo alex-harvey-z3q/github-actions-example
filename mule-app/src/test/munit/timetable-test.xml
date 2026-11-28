@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+  <munit:config name="synthetic-timetable-suite"/>
+  <munit:test name="monday-has-a-session" description="Select Monday from synthetic packaged data">
+    <munit:execution><munit:set-event><munit:variables><munit:variable key="day" value="monday"/></munit:variables></munit:set-event><flow-ref name="timetable-response"/></munit:execution>
+    <munit:validation><munit-tools:assert-that expression="#[sizeOf(payload)]" is="#[MunitTools::equalTo(1)]"/><munit-tools:assert-that expression="#[payload[0].id]" is="#[MunitTools::equalTo('demo-101')]"/></munit:validation>
+  </munit:test>
+  <munit:test name="tuesday-uses-a-mocked-source" description="Mock the data boundary without calling an external service">
+    <munit:behavior><munit-tools:mock-when processor="flow-ref"><munit-tools:with-attributes><munit-tools:with-attribute attributeName="name" whereValue="load-synthetic-sessions"/></munit-tools:with-attributes><munit-tools:then-return><munit-tools:payload value="#[[{id: 'mock-303', day: 'tuesday'}]]" mediaType="application/java"/></munit-tools:then-return></munit-tools:mock-when></munit:behavior>
+    <munit:execution><munit:set-event><munit:variables><munit:variable key="day" value="tuesday"/></munit:variables></munit:set-event><flow-ref name="timetable-response"/></munit:execution>
+    <munit:validation><munit-tools:assert-that expression="#[payload[0].id]" is="#[MunitTools::equalTo('mock-303')]"/></munit:validation>
+  </munit:test>
+  <munit:test name="unknown-day-is-empty" description="An unknown day returns an empty result">
+    <munit:execution><munit:set-event><munit:variables><munit:variable key="day" value="not-a-day"/></munit:variables></munit:set-event><flow-ref name="timetable-response"/></munit:execution>
+    <munit:validation><munit-tools:assert-that expression="#[sizeOf(payload)]" is="#[MunitTools::equalTo(0)]"/></munit:validation>
+  </munit:test>
+</mule>

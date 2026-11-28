@@ -5,3 +5,8 @@ deployment/
 .env
 .venv/
 .DS_Store
+
+# Synthetic Mule POC outputs
+**/target/
+mule-app/demo-exchange/
+mule-app/receipts/

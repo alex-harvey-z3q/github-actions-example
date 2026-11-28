@@ -1,0 +1,36 @@
+name: 04 Synthetic Mule deploy an existing publication
+run-name: "Deploy published Mule ${{ inputs.version }} to ${{ inputs.target_environment }}"
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful workflow 03 run ID holding the published package
+        type: string
+        required: true
+      version:
+        description: Exact version published by that run
+        type: string
+        required: true
+      target_environment:
+        description: Simulated destination (never a real CloudHub environment)
+        type: choice
+        options: [SIT, UAT, PROD]
+        default: UAT
+      require_secret:
+        description: Require the inert DEMO_TOKEN
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  deploy:
+    uses: ./.github/workflows/reusable-mule-deploy.yml
+    with:
+      version: ${{ inputs.version }}
+      target_environment: ${{ inputs.target_environment }}
+      source_run_id: ${{ inputs.source_run_id }}
+      exchange_artifact: mule-exchange-${{ inputs.source_run_id }}
+      require_secret: ${{ inputs.require_secret }}
+    secrets:
+      demo_token: ${{ secrets.DEMO_TOKEN }}
